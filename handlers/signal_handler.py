@@ -235,7 +235,7 @@ async def generate_signal(session, symbol):
         # ATR Volatility Filter
         # Skip pair yang ATR terlalu kecil (market tidur)
         atr_pct = atr / price * 100
-        if atr_pct < 0.3:  # ATR kurang dari 0.3% dari harga = market tidur
+        if atr_pct < 0.2:  # ATR kurang dari 0.3% dari harga = market tidur
             return None
 
         # SMC Analysis
@@ -262,7 +262,7 @@ async def generate_signal(session, symbol):
 
         avg_vol = sum(v[-20:]) / 20 if len(v) >= 20 else 1
 
-        if adx_val < 22:
+        if adx_val < 20:
             return None
 
         long_conditions = [
@@ -289,7 +289,7 @@ async def generate_signal(session, symbol):
         long_score = sum(long_conditions)
         short_score = sum(short_conditions)
 
-        if long_score < 6 and short_score < 6:
+        if long_score < 5 and short_score < 5:
             return None
 
         direction = 'LONG' if long_score >= 5 else 'SHORT'
