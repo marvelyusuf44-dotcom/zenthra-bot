@@ -1,5 +1,2 @@
-config.py
-database/
 __pycache__/
 *.pyc
-*.json
