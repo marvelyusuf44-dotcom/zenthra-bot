@@ -30,18 +30,29 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if fng:
         if fng <= 20:
             fng_text = "😱 EXTREME FEAR"
+            bar_len = 20
+            filled = int(fng / 100 * bar_len)
+            bar = "█" * filled + "░" * (bar_len - filled)
         elif fng <= 40:
             fng_text = "😨 FEAR"
+            bar_len = 20
+            filled = int(fng / 100 * bar_len)
+            bar = "█" * filled + "░" * (bar_len - filled)
         elif fng <= 60:
             fng_text = "😐 NEUTRAL"
+            bar_len = 20
+            filled = int(fng / 100 * bar_len)
+            bar = "█" * filled + "░" * (bar_len - filled)
         elif fng <= 80:
             fng_text = "😊 GREED"
+            bar_len = 20
+            filled = int(fng / 100 * bar_len)
+            bar = "█" * filled + "░" * (bar_len - filled)
         else:
             fng_text = "🤑 EXTREME GREED"
-
-        bar_len = 20
-        filled = int(fng / 100 * bar_len)
-        bar = "█" * filled + "░" * (bar_len - filled)
+            bar_len = 20
+            filled = int(fng / 100 * bar_len)
+            bar = "█" * filled + "░" * (bar_len - filled)
 
         text = (
             f"🧠 <b>MARKET SENTIMENT</b>\n"
