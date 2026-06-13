@@ -14,6 +14,9 @@ def save_users(users):
         json.dump(users, f, indent=2)
 
 def is_allowed(user_id):
+    from config import ADMIN_ID
+    if int(user_id) == int(ADMIN_ID):
+        return True
     users = load_users()
     if str(user_id) in users:
         expired = users[str(user_id)].get('expired')
