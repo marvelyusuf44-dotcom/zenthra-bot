@@ -39,10 +39,15 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             fng_text = "🤑 EXTREME GREED"
 
+        bar_len = 20
+        filled = int(fng / 100 * bar_len)
+        bar = "█" * filled + "░" * (bar_len - filled)
+
         text = (
             f"🧠 <b>MARKET SENTIMENT</b>\n"
             f"──────────────────────\n\n"
             f"{fng_text} [{fng}/100]\n\n"
+            f"<pre>{bar}</pre>\n\n"
             f"──────────────────────\n"
             f"📅 {now}"
         )
