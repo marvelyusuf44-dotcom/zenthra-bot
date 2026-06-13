@@ -24,29 +24,28 @@ def fmt_vol(v):
     if v >= 1_000:         return f"${v/1_000:.0f}K"
     return f"${v:.0f}"
 
-async def fetch(session, url, params=None):
-    try:
-        async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as r:
-            if r.status == 200:
-                return await r.json()
-    except:
-        pass
+async def fetch(session, url, params=None, retry=2):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    for attempt in range(retry):
+        try:
+            async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as r:
+                if r.status == 200:
+                    return await r.json()
+        except:
+            await asyncio.sleep(1)
     return None
 
 async def get_oi_data(session, symbol):
     try:
-        # OI sekarang
         oi_now = await fetch(session, f"{BASE_REST}/fapi/v1/openInterest", params={"symbol": symbol})
         if not oi_now:
             return None
 
-        # OI history (1h interval, 2 data point untuk hitung perubahan)
         oi_hist = await fetch(session, f"{BASE_REST}/futures/data/openInterestHist",
                              params={"symbol": symbol, "period": "1h", "limit": 5})
         if not oi_hist or len(oi_hist) < 2:
             return None
 
-        # Harga sekarang
         ticker = await fetch(session, f"{BASE_REST}/fapi/v1/ticker/price", params={"symbol": symbol})
         if not ticker:
             return None
@@ -56,7 +55,6 @@ async def get_oi_data(session, symbol):
         oi_old    = float(oi_hist[-5]["sumOpenInterest"]) * price if len(oi_hist) >= 5 else oi_usd
         oi_change = ((oi_usd - oi_old) / oi_old * 100) if oi_old > 0 else 0
 
-        # Price change 1h
         klines = await fetch(session, f"{BASE_REST}/fapi/v1/klines",
                             params={"symbol": symbol, "interval": "1h", "limit": 2})
         price_change = 0
@@ -75,12 +73,6 @@ async def get_oi_data(session, symbol):
         return None
 
 def interpret_oi(oi_change, price_change):
-    """
-    OI naik + Price naik = Long buildup (bullish)
-    OI naik + Price turun = Short buildup (bearish)
-    OI turun + Price naik = Short covering (bullish)
-    OI turun + Price turun = Long liquidation (bearish)
-    """
     if oi_change > 0 and price_change > 0:
         return "🟢 Long Buildup", "Bulls accumulating longs"
     elif oi_change > 0 and price_change < 0:
@@ -103,7 +95,6 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     results = [r for r in results if r is not None]
 
-    # Sort by absolute OI change
     results.sort(key=lambda x: abs(x["oi_change"]), reverse=True)
     top = results[:8]
 
