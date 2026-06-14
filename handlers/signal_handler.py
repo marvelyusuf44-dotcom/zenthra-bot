@@ -15,6 +15,19 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(
 log = logging.getLogger(__name__)
 
 user_last_signal = {}
+LAST_SIGNAL_FILE = "database/last_signals.json"
+
+def load_last_signals():
+    import json, os
+    if os.path.exists(LAST_SIGNAL_FILE):
+        with open(LAST_SIGNAL_FILE) as f:
+            return json.load(f)
+    return {}
+
+def save_last_signals():
+    import json
+    with open(LAST_SIGNAL_FILE, "w") as f:
+        json.dump({str(k): v for k,v in user_last_signal.items()}, f, indent=2)
 
 def load_signals():
     if os.path.exists(SIGNALS_FILE):
@@ -381,6 +394,12 @@ async def generate_signal(session, symbol):
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = update.effective_user.id
+
+    # Load last signals dari file saat restart
+    global user_last_signal
+    if not user_last_signal:
+        user_last_signal = {int(k): v for k, v in load_last_signals().items()}
+
     
     if not is_allowed(user_id):
         await query.edit_message_text("❌ Access denied. Contact admin.")
@@ -417,6 +436,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "leverage": lev,
                     "dc": dc
                 }
+                save_last_signals()
                 add_signal(user_id, pair_clean, direction, entry, sl, tp1, tp2, tp3, lev)
                 keyboard = [
                     [InlineKeyboardButton("✅ ENTER POSITION", callback_data=f"enter_{user_id}_{pair_clean}")],
