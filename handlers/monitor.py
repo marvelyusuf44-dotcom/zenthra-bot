@@ -150,7 +150,7 @@ async def monitor_positions(app):
                             update_signal_status(pair_clean, tp_hit=3)
                             await app.bot.send_message(user_id, tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
-                        elif current_price <= sl:
+                        elif current_price <= sl and key not in to_remove:
                             loss_lev = (entry - sl) / entry * 100 * lev
                             is_be = abs(sl - entry) / entry < 0.0005
                             if is_be:
@@ -179,7 +179,7 @@ async def monitor_positions(app):
                             update_signal_status(pair_clean, tp_hit=3)
                             await app.bot.send_message(user_id, tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
-                        elif current_price >= sl:
+                        elif current_price >= sl and key not in to_remove:
                             loss_lev = (sl - entry) / entry * 100 * lev
                             is_be = abs(sl - entry) / entry < 0.0005
                             if is_be:
