@@ -126,7 +126,7 @@ async def monitor_positions(app):
                             profit_lev = (tp1 - entry) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=1)
                             await app.bot.send_message(user_id, tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt), parse_mode="HTML")
-                        elif not tp2_hit and current_price >= tp2:
+                        elif not tp2_hit and not pos.get("tp2_hit", False) and current_price >= tp2:
                             pos["tp2_hit"] = True
                             save_positions(positions)
                             profit_lev = (tp2 - entry) / entry * 100 * lev
@@ -150,7 +150,7 @@ async def monitor_positions(app):
                             profit_lev = (entry - tp1) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=1)
                             await app.bot.send_message(user_id, tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt), parse_mode="HTML")
-                        elif not tp2_hit and current_price <= tp2:
+                        elif not tp2_hit and not pos.get("tp2_hit", False) and current_price <= tp2:
                             pos["tp2_hit"] = True
                             save_positions(positions)
                             profit_lev = (entry - tp2) / entry * 100 * lev
