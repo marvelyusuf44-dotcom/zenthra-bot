@@ -53,7 +53,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
         f"⚙ ZENTHRA · Futures Signal Bot\n\n"
         f"👤 Username: @{username}\n"
         f"🆔 User ID: {user_id}\n\n"
-        f"Click on the REFRESH button to update your current status.\n\n"
+        f""
         f"Join our Telegram: {COMMUNITY_CHANNEL}\n\n"
         f"⚠️ We have no control over ads shown by Telegram in this bot.\n"
         f"Do not be scammed by fake airdrops or login pages.\n\n"
