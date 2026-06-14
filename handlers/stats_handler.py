@@ -62,7 +62,7 @@ def get_user_stats(user_id):
     positions = load_positions()
     active_signals = sum(1 for k, pos in positions.items() if pos.get('user_id') == user_id)
 
-    return total, tp_hit, sl_hit, win_rate, best_pair, most_signal, active_signals
+    return total, tp_hit, sl_hit, be_hit, win_rate, best_pair, most_signal, active_signals
 
 def win_rate_bar(wr):
     filled = round(wr / 10)
@@ -83,7 +83,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("❌ Access denied.")
         return
 
-    total, tp_hit, sl_hit, win_rate, best_pair, most_signal, active_signals = get_user_stats(user_id)
+    total, tp_hit, sl_hit, be_hit, win_rate, best_pair, most_signal, active_signals = get_user_stats(user_id)
     today = datetime.now().strftime("%d %b %Y")
 
     best_pair_display = f"#{best_pair}" if best_pair != "-" else "-"
