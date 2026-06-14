@@ -119,6 +119,9 @@ async def monitor_positions(app):
                 tp3 = pos.get("tp3")
                 lev = pos.get("leverage", 10)
                 dc = pos.get("dc", 4)
+                # Reload dari file supaya status selalu fresh
+                positions = load_positions()
+                pos = positions.get(key, pos)
                 tp1_hit = pos.get("tp1_hit", False)
                 tp2_hit = pos.get("tp2_hit", False)
 

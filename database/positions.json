@@ -232,31 +232,5 @@
     "tp3_state": "pending",
     "sl_state": "pending",
     "be_active": false
-  },
-  "8020859688_SAPIENUSDT": {
-    "user_id": 8020859688,
-    "pair": "SAPIENUSDT",
-    "direction": "LONG",
-    "entry": 0.08361,
-    "sl": 0.08251,
-    "tp1": 0.08461,
-    "tp2": 0.08536,
-    "tp3": 0.08636,
-    "leverage": 40,
-    "dc": 6,
-    "tp1_hit": false,
-    "tp1_sent": false,
-    "tp2_sent": false,
-    "tp3_sent": false,
-    "sl_sent": false,
-    "be_active": false,
-    "be_activated": false,
-    "tp2_hit": false,
-    "created_at": "2026-06-13T22:12:52.982826",
-    "be_sent": false,
-    "tp1_state": "pending",
-    "tp2_state": "pending",
-    "tp3_state": "pending",
-    "sl_state": "pending"
   }
 }
