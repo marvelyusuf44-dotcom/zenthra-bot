@@ -48,6 +48,7 @@ def update_signal_status(pair, tp_hit=None, sl_hit=False, be_hit=False):
     save_signals(signals)
 
 def tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt):
+                            pos["tp1_sent"] = True
     return (
         f"🎯 <b>TP1 HIT!</b>\n\n"
         f"📌 <b>Pair</b>      : #{pair_clean}USDT\n"
@@ -59,6 +60,7 @@ def tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt):
     )
 
 def tp2_msg(pair_clean, emoji, direction, tp2, profit_lev, lev, fmt):
+                            pos["tp2_sent"] = True
     return (
         f"🎯 <b>TP2 HIT!</b>\n\n"
         f"📌 <b>Pair</b>      : #{pair_clean}USDT\n"
@@ -70,6 +72,7 @@ def tp2_msg(pair_clean, emoji, direction, tp2, profit_lev, lev, fmt):
     )
 
 def tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt):
+                            pos["tp3_sent"] = True
     return (
         f"🎯 <b>TP3 HIT!</b>\n\n"
         f"📌 <b>Pair</b>      : #{pair_clean}USDT\n"
@@ -92,6 +95,7 @@ def be_msg(pair_clean, emoji, direction, sl, lev, fmt):
     )
 
 def sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt):
+                            pos["sl_sent"] = True
     return (
         f"🛑 <b>STOP LOSS HIT!</b>\n\n"
         f"📌 <b>Pair</b>      : #{pair_clean}USDT\n"
@@ -121,6 +125,11 @@ async def monitor_positions(app):
                 dc = pos.get("dc", 4)
                 tp1_hit = pos.get("tp1_hit", False)
                 tp2_hit = pos.get("tp2_hit", False)
+                tp2_sent = pos.get("tp2_sent", False)
+                tp1_sent = pos.get("tp1_sent", False)
+                tp3_sent = pos.get("tp3_sent", False)
+                sl_sent = pos.get("sl_sent", False)
+                be_sent = pos.get("be_sent", False)
 
                 async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
                     ticker = await fetch(session, f"{BASE_REST}/fapi/v1/ticker/price", params={'symbol': pair})
@@ -132,25 +141,33 @@ async def monitor_positions(app):
                     emoji = '🟢' if direction == 'LONG' else '🔴'
 
                     if direction == 'LONG':
-                        if not tp1_hit and not pos.get("tp1_hit", False) and current_price >= tp1:
+                        if not tp1_hit and not pos.get("tp1_hit", False) and not pos.get("tp1_sent", False) and current_price >= tp1:
                             pos["tp1_hit"] = True
                             pos["sl"] = entry  # Move SL to breakeven
                             save_positions(positions)
                             profit_lev = (tp1 - entry) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=1)
                             await app.bot.send_message(user_id, tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt), parse_mode="HTML")
-                        elif not tp2_hit and not pos.get("tp2_hit", False) and current_price >= tp2:
+                            pos["tp1_sent"] = True
+                        elif not tp2_hit and not pos.get("tp2_hit", False) and not pos.get("tp2_sent", False) and current_price >= tp2:
+                tp2_sent = pos.get("tp2_sent", False)
+                tp1_sent = pos.get("tp1_sent", False)
+                tp3_sent = pos.get("tp3_sent", False)
+                sl_sent = pos.get("sl_sent", False)
+                be_sent = pos.get("be_sent", False)
                             pos["tp2_hit"] = True
                             save_positions(positions)
                             profit_lev = (tp2 - entry) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=2)
                             await app.bot.send_message(user_id, tp2_msg(pair_clean, emoji, direction, tp2, profit_lev, lev, fmt), parse_mode="HTML")
-                        elif current_price >= tp3:
+                            pos["tp2_sent"] = True
+                        elif current_price >= tp3 and not pos.get("tp3_sent", False):
                             profit_lev = (tp3 - entry) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=3)
                             await app.bot.send_message(user_id, tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt), parse_mode="HTML")
+                            pos["tp3_sent"] = True
                             to_remove.append(key)
-                        elif current_price <= sl and key not in to_remove:
+                        elif current_price <= sl and not pos.get("sl_sent", False) and key not in to_remove:
                             loss_lev = (entry - sl) / entry * 100 * lev
                             is_be = abs(sl - entry) / entry < 0.0005
                             if is_be:
@@ -159,27 +176,36 @@ async def monitor_positions(app):
                             else:
                                 update_signal_status(pair_clean, sl_hit=True)
                                 await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
+                            pos["sl_sent"] = True
                             to_remove.append(key)
                     else:
-                        if not tp1_hit and not pos.get("tp1_hit", False) and current_price <= tp1:
+                        if not tp1_hit and not pos.get("tp1_hit", False) and not pos.get("tp1_sent", False) and current_price <= tp1:
                             pos["tp1_hit"] = True
                             pos["sl"] = entry  # Move SL to breakeven
                             save_positions(positions)
                             profit_lev = (entry - tp1) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=1)
                             await app.bot.send_message(user_id, tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt), parse_mode="HTML")
-                        elif not tp2_hit and not pos.get("tp2_hit", False) and current_price <= tp2:
+                            pos["tp1_sent"] = True
+                        elif not tp2_hit and not pos.get("tp2_hit", False) and not pos.get("tp2_sent", False) and current_price <= tp2:
+                tp2_sent = pos.get("tp2_sent", False)
+                tp1_sent = pos.get("tp1_sent", False)
+                tp3_sent = pos.get("tp3_sent", False)
+                sl_sent = pos.get("sl_sent", False)
+                be_sent = pos.get("be_sent", False)
                             pos["tp2_hit"] = True
                             save_positions(positions)
                             profit_lev = (entry - tp2) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=2)
                             await app.bot.send_message(user_id, tp2_msg(pair_clean, emoji, direction, tp2, profit_lev, lev, fmt), parse_mode="HTML")
+                            pos["tp2_sent"] = True
                         elif current_price <= tp3:
                             profit_lev = (entry - tp3) / entry * 100 * lev
                             update_signal_status(pair_clean, tp_hit=3)
                             await app.bot.send_message(user_id, tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt), parse_mode="HTML")
+                            pos["tp3_sent"] = True
                             to_remove.append(key)
-                        elif current_price >= sl and key not in to_remove:
+                        elif current_price >= sl and not pos.get("sl_sent", False) and key not in to_remove:
                             loss_lev = (sl - entry) / entry * 100 * lev
                             is_be = abs(sl - entry) / entry < 0.0005
                             if is_be:
@@ -188,6 +214,7 @@ async def monitor_positions(app):
                             else:
                                 update_signal_status(pair_clean, sl_hit=True)
                                 await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
+                            pos["sl_sent"] = True
                             to_remove.append(key)
 
             for key in to_remove:
