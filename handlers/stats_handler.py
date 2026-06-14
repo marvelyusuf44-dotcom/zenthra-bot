@@ -92,7 +92,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bar = win_rate_bar(win_rate)
     label = win_rate_label(win_rate)
 
-    pending = total - tp_hit - sl_hit
+    pending = total - tp_hit - sl_hit - be_hit
 
     msg = (
         f"📊 <b>ZENTHRA STATISTICS</b>\n"
