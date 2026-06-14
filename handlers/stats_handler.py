@@ -30,6 +30,7 @@ def get_user_stats(user_id):
     total = len(user_signals)
     tp_hit = sum(1 for s in user_signals if s.get('status') in ['tp1_hit', 'tp2_hit', 'tp3_hit'])
     sl_hit = sum(1 for s in user_signals if s.get('status') == 'sl_hit')
+    be_hit = sum(1 for s in user_signals if s.get('status') == 'be_hit')
     win_rate = (tp_hit / total * 100) if total > 0 else 0
 
     pair_stats = {}
@@ -102,6 +103,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"┌ Total Signals  : <b>{total}</b>\n"
         f"├ 🎯 TP Hit      : <b>{tp_hit}</b>\n"
         f"├ 🛑 SL Hit      : <b>{sl_hit}</b>\n"
+        f"├ 🟡 Breakeven   : <b>{be_hit}</b>\n"
         f"└ ⏳ Pending     : <b>{pending}</b>\n\n"
 
         f"📈 <b>Win Rate</b>\n"

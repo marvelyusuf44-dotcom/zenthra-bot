@@ -34,7 +34,7 @@ def save_signals(signals):
     with open(SIGNALS_FILE, 'w') as f:
         json.dump(signals, f, indent=2)
 
-def update_signal_status(pair, tp_hit=None, sl_hit=False):
+def update_signal_status(pair, tp_hit=None, sl_hit=False, be_hit=False):
     signals = load_signals()
     for s in signals:
         if s.get("pair") == pair and s.get("status") == "pending":
@@ -42,6 +42,8 @@ def update_signal_status(pair, tp_hit=None, sl_hit=False):
                 s["status"] = f"tp{tp_hit}_hit"
             elif sl_hit:
                 s["status"] = "sl_hit"
+            elif be_hit:
+                s["status"] = "be_hit"
             break
     save_signals(signals)
 
