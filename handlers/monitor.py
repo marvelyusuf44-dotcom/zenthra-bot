@@ -132,7 +132,7 @@ async def monitor_positions(app):
                     emoji = '🟢' if direction == 'LONG' else '🔴'
 
                     if direction == 'LONG':
-                        if not tp1_hit and current_price >= tp1:
+                        if not tp1_hit and not pos.get("tp1_hit", False) and current_price >= tp1:
                             pos["tp1_hit"] = True
                             pos["sl"] = entry  # Move SL to breakeven
                             save_positions(positions)
@@ -161,7 +161,7 @@ async def monitor_positions(app):
                                 await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
                     else:
-                        if not tp1_hit and current_price <= tp1:
+                        if not tp1_hit and not pos.get("tp1_hit", False) and current_price <= tp1:
                             pos["tp1_hit"] = True
                             pos["sl"] = entry  # Move SL to breakeven
                             save_positions(positions)
