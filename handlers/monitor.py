@@ -80,6 +80,17 @@ def tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt):
         f"🎉 Full target reached!"
     )
 
+def be_msg(pair_clean, emoji, direction, sl, lev, fmt):
+    return (
+        f"🟡 <b>BREAKEVEN HIT!</b>\n\n"
+        f"📌 <b>Pair</b>      : #{pair_clean}USDT\n"
+        f"📊 <b>Direction</b> : {emoji} {direction}\n"
+        f"🎯 <b>Exit</b>      : {fmt(sl)}\n"
+        f"📊 <b>Result</b>    : 0.00%\n"
+        f"⚡ <b>Leverage</b>  : {lev}x\n\n"
+        f"✅ Capital secured."
+    )
+
 def sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt):
     return (
         f"🛑 <b>STOP LOSS HIT!</b>\n\n"
@@ -141,8 +152,13 @@ async def monitor_positions(app):
                             to_remove.append(key)
                         elif current_price <= sl:
                             loss_lev = (entry - sl) / entry * 100 * lev
-                            update_signal_status(pair_clean, sl_hit=True)
-                            await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
+                            is_be = abs(sl - entry) / entry < 0.0005
+                            if is_be:
+                                update_signal_status(pair_clean, be_hit=True)
+                                await app.bot.send_message(user_id, be_msg(pair_clean, emoji, direction, sl, lev, fmt), parse_mode="HTML")
+                            else:
+                                update_signal_status(pair_clean, sl_hit=True)
+                                await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
                     else:
                         if not tp1_hit and current_price <= tp1:
@@ -165,8 +181,13 @@ async def monitor_positions(app):
                             to_remove.append(key)
                         elif current_price >= sl:
                             loss_lev = (sl - entry) / entry * 100 * lev
-                            update_signal_status(pair_clean, sl_hit=True)
-                            await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
+                            is_be = abs(sl - entry) / entry < 0.0005
+                            if is_be:
+                                update_signal_status(pair_clean, be_hit=True)
+                                await app.bot.send_message(user_id, be_msg(pair_clean, emoji, direction, sl, lev, fmt), parse_mode="HTML")
+                            else:
+                                update_signal_status(pair_clean, sl_hit=True)
+                                await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
 
             for key in to_remove:
