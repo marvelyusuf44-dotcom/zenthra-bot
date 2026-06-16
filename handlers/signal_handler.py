@@ -178,6 +178,38 @@ def detect_bos(closes, highs, lows, lookback=5):
     except:
         return None
 
+def detect_choch(closes, highs, lows, lookback=5):
+    """Change of Character — deteksi perubahan struktur market"""
+    try:
+        sh, sl = [], []
+        for i in range(lookback, len(highs) - lookback):
+            if highs[i] == max(highs[i-lookback:i+lookback+1]):
+                sh.append((i, highs[i]))
+            if lows[i] == min(lows[i-lookback:i+lookback+1]):
+                sl.append((i, lows[i]))
+
+        if len(sh) < 3 or len(sl) < 3:
+            return None
+
+        # Cek 3 swing terakhir
+        last_sh, prev_sh = sh[-1][1], sh[-2][1]
+        last_sl, prev_sl = sl[-1][1], sl[-2][1]
+        price = closes[-1]
+
+        # CHOCH Bullish: sebelumnya bearish (LH, LL) tapi sekarang break above prev SH
+        was_bearish = sh[-2][1] < sh[-3][1] and sl[-2][1] < sl[-3][1]
+        if was_bearish and price > prev_sh:
+            return "BULLISH"
+
+        # CHOCH Bearish: sebelumnya bullish (HH, HL) tapi sekarang break below prev SL
+        was_bullish = sh[-2][1] > sh[-3][1] and sl[-2][1] > sl[-3][1]
+        if was_bullish and price < prev_sl:
+            return "BEARISH"
+
+        return None
+    except:
+        return None
+
 def detect_fvg(opens, closes, highs, lows):
     try:
         for i in range(len(closes)-1, 1, -1):
@@ -255,6 +287,7 @@ async def generate_signal(session, symbol):
         raw_data = await get_klines(session, symbol, '15m', 150)
         opens = [float(x[1]) for x in raw_data] if raw_data else []
         bos = detect_bos(c, h, l)
+        choch = detect_choch(c, h, l)
         fvg_type, fvg_low, fvg_high = detect_fvg(opens, c, h, l)
         ob_type, ob_low, ob_high = detect_order_block(opens, c, h, l)
         liq_sweep = detect_liquidity_sweep(h, l, c)
@@ -313,6 +346,12 @@ async def generate_signal(session, symbol):
             direction = 'SHORT'
         else:
             return None  # Tidak ada arah yang dominan
+
+        # CHOCH Filter — skip kalau struktur baru balik arah berlawanan
+        if direction == 'LONG' and choch == 'BEARISH':
+            return None  # Baru terjadi CHOCH bearish, skip LONG
+        if direction == 'SHORT' and choch == 'BULLISH':
+            return None  # Baru terjadi CHOCH bullish, skip SHORT
 
         # SMC Score
         smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
