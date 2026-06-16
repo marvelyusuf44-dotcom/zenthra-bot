@@ -303,10 +303,16 @@ async def generate_signal(session, symbol):
         long_score = sum(long_conditions)
         short_score = sum(short_conditions)
 
-        if long_score < 6 and short_score < 6:
+        if long_score < 7 and short_score < 7:
             return None
 
-        direction = 'LONG' if long_score >= short_score else 'SHORT'
+        # Butuh selisih minimal 2 supaya arah lebih yakin
+        if long_score >= short_score + 2:
+            direction = 'LONG'
+        elif short_score >= long_score + 2:
+            direction = 'SHORT'
+        else:
+            return None  # Tidak ada arah yang dominan
 
         # SMC Score
         smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
