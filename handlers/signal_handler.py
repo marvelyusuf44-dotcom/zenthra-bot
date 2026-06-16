@@ -252,7 +252,8 @@ async def generate_signal(session, symbol):
             return None
 
         # SMC Analysis
-        opens = [float(x[1]) for x in data]
+        raw_data = await get_klines(session, symbol, '15m', 150)
+        opens = [float(x[1]) for x in raw_data] if raw_data else []
         bos = detect_bos(c, h, l)
         fvg_type, fvg_low, fvg_high = detect_fvg(opens, c, h, l)
         ob_type, ob_low, ob_high = detect_order_block(opens, c, h, l)
@@ -305,7 +306,7 @@ async def generate_signal(session, symbol):
         if long_score < 6 and short_score < 6:
             return None
 
-        direction = 'LONG' if long_score >= 5 else 'SHORT'
+        direction = 'LONG' if long_score >= short_score else 'SHORT'
 
         # SMC Score
         smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
@@ -369,11 +370,11 @@ async def generate_signal(session, symbol):
 
         total_score = max(long_score, short_score)
         if total_score >= 8:
-            lev = random.choice([50, 75, 100])
+            lev = random.choice([20, 25, 30])
         elif total_score >= 6:
-            lev = random.choice([30, 40, 50])
+            lev = random.choice([10, 15, 20])
         else:
-            lev = random.choice([15, 20, 25])
+            lev = random.choice([5, 7, 10])
 
         msg = (f"📌 <b>Pair</b>      : #{pair_clean}USDT\n"
                f"📊 <b>Direction</b> : {emoji} {direction}\n"
