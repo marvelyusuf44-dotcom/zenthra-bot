@@ -37,7 +37,7 @@ def save_signals(signals):
 def update_signal_status(pair, tp_hit=None, sl_hit=False, be_hit=False):
     signals = load_signals()
     for s in signals:
-        if s.get("pair") == pair and s.get("status") == "pending":
+        if s.get("pair") == pair and s.get("status") in ["pending", "tp1_hit", "tp2_hit"]:
             if tp_hit:
                 s["status"] = f"tp{tp_hit}_hit"
             elif sl_hit:
