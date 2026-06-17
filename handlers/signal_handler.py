@@ -347,11 +347,10 @@ async def generate_signal(session, symbol):
         else:
             return None  # Tidak ada arah yang dominan
 
-        # CHOCH Filter — skip kalau struktur baru balik arah berlawanan
-        if direction == 'LONG' and choch == 'BEARISH':
-            return None  # Baru terjadi CHOCH bearish, skip LONG
-        if direction == 'SHORT' and choch == 'BULLISH':
-            return None  # Baru terjadi CHOCH bullish, skip SHORT
+        # SMC Confluence Filter — minimal 4/8 SMC score harus terpenuhi
+        smc_score_check = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
+        if smc_score_check < 4:
+            return None
 
         # SMC Score
         smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
