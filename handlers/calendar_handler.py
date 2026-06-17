@@ -41,14 +41,12 @@ def get_upcoming_events(days_ahead=60):
             event_dt = datetime.strptime(date_str, "%Y-%m-%d")
             days_left = (event_dt - now).days
 
-            if days_left < -1:  # skip event yang sudah lewat
+            if days_left < 0:  # skip event yang sudah lewat (termasuk hari ini kalau sudah lewat jam)
                 continue
             if days_left > days_ahead:  # skip event terlalu jauh
                 continue
 
-            if days_left < 0:
-                time_label = "Yesterday"
-            elif days_left == 0:
+            if days_left == 0:
                 time_label = "🔥 TODAY"
             elif days_left == 1:
                 time_label = "Tomorrow"
