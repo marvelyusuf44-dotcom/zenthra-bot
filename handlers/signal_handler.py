@@ -263,6 +263,46 @@ def calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep):
     return score
 
 
+async def get_funding_rate(session, symbol):
+    """Ambil funding rate terkini dari Binance"""
+    try:
+        data = await fetch(session, f"{BASE_REST}/fapi/v1/premiumIndex", params={"symbol": symbol})
+        if data and "lastFundingRate" in data:
+            return float(data["lastFundingRate"]) * 100  # convert ke persen
+        return None
+    except:
+        return None
+
+async def get_oi_change(session, symbol):
+    """Ambil OI sekarang vs 1 jam lalu untuk deteksi naik/turun"""
+    try:
+        hist = await fetch(session, f"{BASE_REST}/futures/data/openInterestHist",
+                          params={"symbol": symbol, "period": "1h", "limit": 2})
+        if hist and len(hist) >= 2:
+            oi_old = float(hist[0]["sumOpenInterest"])
+            oi_now = float(hist[-1]["sumOpenInterest"])
+            if oi_old > 0:
+                return ((oi_now - oi_old) / oi_old) * 100
+        return None
+    except:
+        return None
+
+def check_rr_ratio(entry, sl, tp1, direction):
+    """Cek Risk:Reward minimal 2.0"""
+    try:
+        if direction == 'LONG':
+            risk = entry - sl
+            reward = tp1 - entry
+        else:
+            risk = sl - entry
+            reward = entry - tp1
+        if risk <= 0:
+            return False
+        rr = reward / risk
+        return rr >= 1.8  # sedikit toleransi dari 2.0 murni karena tp1 paling konservatif
+    except:
+        return False
+
 async def generate_signal(session, symbol):
     try:
         data = await get_klines(session, symbol, '15m', 150)
@@ -384,6 +424,29 @@ async def generate_signal(session, symbol):
                 if not (e21_4h < e50_4h and hist4h[-1] < 0):
                     return None
 
+        # Funding Rate Filter — hindari entry di kondisi overheated
+        funding = await get_funding_rate(session, symbol)
+        if funding is not None:
+            if direction == 'LONG' and funding > 0.10:
+                return None  # Long crowded, risiko flush
+            if direction == 'SHORT' and funding < -0.10:
+                return None  # Short crowded, risiko squeeze
+
+        # OI + Price Confluence Filter
+        price_change_1h = (c[-1] - c[-5]) / c[-5] * 100 if len(c) >= 5 else 0
+        oi_change = await get_oi_change(session, symbol)
+        if oi_change is not None:
+            if direction == 'LONG':
+                # LONG valid kalau price naik + OI naik (fresh longs)
+                # Skip kalau price naik tapi OI turun (cuma short covering, lemah)
+                if price_change_1h > 0 and oi_change < -3:
+                    return None
+            else:
+                # SHORT valid kalau price turun + OI naik (fresh shorts)
+                # Skip kalau price turun tapi OI turun (cuma long liquidation, lemah)
+                if price_change_1h < 0 and oi_change < -3:
+                    return None
+
 
         if price >= 1000: dc = 1
         elif price >= 100: dc = 2
@@ -430,6 +493,10 @@ async def generate_signal(session, symbol):
                f"   <b>TP2</b> : {fmt(tp2)}\n"
                f"   <b>TP3</b> : {fmt(tp3)}\n\n"
                f"⚠️ Risk 1-3% per trade")
+
+        # R:R Minimum Check — skip setup dengan reward terlalu kecil dibanding risk
+        if not check_rr_ratio((entry_low + entry_high) / 2, sl, tp1, direction):
+            return None
 
         return msg, direction, pair_clean, entry_low, entry_high, sl, tp1, tp2, tp3, lev, dc
     except Exception as e:
