@@ -427,9 +427,9 @@ async def generate_signal(session, symbol):
         # Funding Rate Filter — hindari entry di kondisi overheated
         funding = await get_funding_rate(session, symbol)
         if funding is not None:
-            if direction == 'LONG' and funding > 0.10:
+            if direction == 'LONG' and funding > 0.15:
                 return None  # Long crowded, risiko flush
-            if direction == 'SHORT' and funding < -0.10:
+            if direction == 'SHORT' and funding < -0.15:
                 return None  # Short crowded, risiko squeeze
 
         # OI + Price Confluence Filter
@@ -439,12 +439,12 @@ async def generate_signal(session, symbol):
             if direction == 'LONG':
                 # LONG valid kalau price naik + OI naik (fresh longs)
                 # Skip kalau price naik tapi OI turun (cuma short covering, lemah)
-                if price_change_1h > 0 and oi_change < -3:
+                if price_change_1h > 0 and oi_change < -5:
                     return None
             else:
                 # SHORT valid kalau price turun + OI naik (fresh shorts)
                 # Skip kalau price turun tapi OI turun (cuma long liquidation, lemah)
-                if price_change_1h < 0 and oi_change < -3:
+                if price_change_1h < 0 and oi_change < -5:
                     return None
 
 
