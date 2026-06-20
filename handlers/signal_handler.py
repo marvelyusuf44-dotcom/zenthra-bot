@@ -376,20 +376,20 @@ async def generate_signal(session, symbol):
         long_score = sum(long_conditions)
         short_score = sum(short_conditions)
 
-        if long_score < 7 and short_score < 7:
+        if long_score < 6 and short_score < 6:
             return None
 
         # Butuh selisih minimal 2 supaya arah lebih yakin
-        if long_score >= short_score + 2:
+        if long_score >= short_score + 1:
             direction = 'LONG'
-        elif short_score >= long_score + 2:
+        elif short_score >= long_score + 1:
             direction = 'SHORT'
         else:
             return None  # Tidak ada arah yang dominan
 
         # SMC Confluence Filter — minimal 4/8 SMC score harus terpenuhi
         smc_score_check = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
-        if smc_score_check < 4:
+        if smc_score_check < 3:
             return None
 
         # SMC Score
