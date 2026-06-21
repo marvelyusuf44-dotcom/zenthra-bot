@@ -424,28 +424,24 @@ async def generate_signal(session, symbol):
                 if not (e21_4h < e50_4h and hist4h[-1] < 0):
                     return None
 
-        # Funding Rate Filter — hindari entry di kondisi overheated
-        funding = await get_funding_rate(session, symbol)
-        if funding is not None:
-            if direction == 'LONG' and funding > 0.15:
-                return None  # Long crowded, risiko flush
-            if direction == 'SHORT' and funding < -0.15:
-                return None  # Short crowded, risiko squeeze
+        # Funding Rate Filter — SEMENTARA DINONAKTIFKAN (terlalu ketat)
+        # funding = await get_funding_rate(session, symbol)
+        # if funding is not None:
+        #     if direction == 'LONG' and funding > 0.15:
+        #         return None
+        #     if direction == 'SHORT' and funding < -0.15:
+        #         return None
 
-        # OI + Price Confluence Filter
-        price_change_1h = (c[-1] - c[-5]) / c[-5] * 100 if len(c) >= 5 else 0
-        oi_change = await get_oi_change(session, symbol)
-        if oi_change is not None:
-            if direction == 'LONG':
-                # LONG valid kalau price naik + OI naik (fresh longs)
-                # Skip kalau price naik tapi OI turun (cuma short covering, lemah)
-                if price_change_1h > 0 and oi_change < -5:
-                    return None
-            else:
-                # SHORT valid kalau price turun + OI naik (fresh shorts)
-                # Skip kalau price turun tapi OI turun (cuma long liquidation, lemah)
-                if price_change_1h < 0 and oi_change < -5:
-                    return None
+        # OI + Price Confluence Filter — SEMENTARA DINONAKTIFKAN (terlalu ketat)
+        # price_change_1h = (c[-1] - c[-5]) / c[-5] * 100 if len(c) >= 5 else 0
+        # oi_change = await get_oi_change(session, symbol)
+        # if oi_change is not None:
+        #     if direction == 'LONG':
+        #         if price_change_1h > 0 and oi_change < -5:
+        #             return None
+        #     else:
+        #         if price_change_1h < 0 and oi_change < -5:
+        #             return None
 
 
         if price >= 1000: dc = 1
