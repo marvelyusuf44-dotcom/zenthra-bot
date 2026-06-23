@@ -490,10 +490,6 @@ async def generate_signal(session, symbol):
                f"   <b>TP3</b> : {fmt(tp3)}\n\n"
                f"⚠️ Risk 1-3% per trade")
 
-        # R:R Minimum Check — skip setup dengan reward terlalu kecil dibanding risk
-        if not check_rr_ratio((entry_low + entry_high) / 2, sl, tp1, direction):
-            return None
-
         return msg, direction, pair_clean, entry_low, entry_high, sl, tp1, tp2, tp3, lev, dc
     except Exception as e:
         log.debug(f"signal {symbol}: {e}")
