@@ -440,7 +440,7 @@ async def generate_signal(session, symbol):
 
         # Jarak ke EMA50 — hindari entry di area sudah terlalu jauh dari EMA50
         dist_to_ema50_pct = abs(price - e50) / e50 * 100
-        if dist_to_ema50_pct > 5:
+        if dist_to_ema50_pct > 8:
             return None  # harga sudah terlalu jauh dari EMA50, risiko reversal tinggi
 
         # Funding Rate Filter — SEMENTARA DINONAKTIFKAN (terlalu ketat)
