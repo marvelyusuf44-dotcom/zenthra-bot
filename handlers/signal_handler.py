@@ -417,12 +417,31 @@ async def generate_signal(session, symbol):
             e21_4h = ema_list(c4h, 21)[-1]
             e50_4h = ema_list(c4h, 50)[-1]
             hist4h = calc_macd(c4h)
+            adx4h, pdi4h, mdi4h = calc_adx(h4h, l4h, c4h)
+
+            # Trend 4H harus kuat, bukan cuma searah (ADX minimal 20)
+            if adx4h < 20:
+                return None
+
             if direction == 'LONG':
                 if not (e21_4h > e50_4h and hist4h[-1] > 0):
                     return None
             else:
                 if not (e21_4h < e50_4h and hist4h[-1] < 0):
                     return None
+
+        # Candle Confirmation — candle 15m terakhir harus searah signal
+        last_open = float(data[-1][1])
+        last_close = c[-1]
+        if direction == 'LONG' and last_close <= last_open:
+            return None  # candle terakhir bearish, jangan LONG
+        if direction == 'SHORT' and last_close >= last_open:
+            return None  # candle terakhir bullish, jangan SHORT
+
+        # Jarak ke EMA50 — hindari entry di area sudah terlalu jauh dari EMA50
+        dist_to_ema50_pct = abs(price - e50) / e50 * 100
+        if dist_to_ema50_pct > 5:
+            return None  # harga sudah terlalu jauh dari EMA50, risiko reversal tinggi
 
         # Funding Rate Filter — SEMENTARA DINONAKTIFKAN (terlalu ketat)
         # funding = await get_funding_rate(session, symbol)
