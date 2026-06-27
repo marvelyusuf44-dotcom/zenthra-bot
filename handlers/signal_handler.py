@@ -412,6 +412,8 @@ async def generate_signal(session, symbol):
         if smc_score_check < 2:
             return None
 
+        log.info(f"[SIGNAL FOUND] {symbol} {direction} | tech_score={max(long_score,short_score)} | smc={smc_score_check} | combined_long={combined_long:.1f} combined_short={combined_short:.1f}")
+
         # SMC Score
         smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
 
