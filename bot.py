@@ -129,6 +129,34 @@ async def calc_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
 
+async def broadcast_command(update, context):
+    from config import ADMIN_ID
+    import json
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    if not context.args:
+        await update.message.reply_text("Gunakan: /broadcast [pesan kamu]")
+        return
+
+    message = " ".join(context.args)
+
+    with open("database/users.json", "r") as f:
+        users = json.load(f)
+
+    sent = 0
+    failed = 0
+    for user_id in users.keys():
+        try:
+            await context.bot.send_message(int(user_id), message, parse_mode="HTML")
+            sent += 1
+        except Exception as e:
+            failed += 1
+
+    await update.message.reply_text(f"✅ Broadcast selesai.\nTerkirim: {sent}\nGagal: {failed}")
+
+
 async def main():
     os.makedirs("database", exist_ok=True)
     
@@ -146,6 +174,7 @@ async def main():
     app.add_handler(CommandHandler("adduser", adduser_command))
     app.add_handler(CommandHandler("removeuser", removeuser_command))
     app.add_handler(CommandHandler("listusers", listusers_command))
+    app.add_handler(CommandHandler("broadcast", broadcast_command))
     
     # Callback handler untuk tombol
     app.add_handler(CallbackQueryHandler(menu_callback))
