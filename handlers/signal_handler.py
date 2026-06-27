@@ -352,25 +352,33 @@ async def generate_signal(session, symbol):
         if adx_val < 22:
             return None
 
+        # Price structure: higher low (3 candle terakhir naik) untuk LONG, lower high untuk SHORT
+        hl_3 = l[-3] < l[-2] < l[-1] if len(l) >= 3 else False
+        lh_3 = h[-3] > h[-2] > h[-1] if len(h) >= 3 else False
+
+        # MACD momentum dalam 3 candle terakhir (lebih toleran dari strict candle terakhir)
+        macd_fresh_bull = any(hist[i-1] < 0 < hist[i] for i in range(max(1, len(hist)-3), len(hist))) if len(hist) >= 4 else False
+        macd_fresh_bear = any(hist[i-1] > 0 > hist[i] for i in range(max(1, len(hist)-3), len(hist))) if len(hist) >= 4 else False
+
         long_conditions = [
-            e9 > e21,
-            e21 > e50,
-            hist[-1] > 0,
-            hist[-2] < 0 < hist[-1] if len(hist) >= 2 else False,
-            wr[-1] < -55,
-            v[-1] > avg_vol * 1.1,
-            pdi > mdi,
-            slope_e21 > 0,
+            e9 > e21,                          # trend pendek naik
+            hist[-1] > 0,                      # momentum bullish sekarang
+            macd_fresh_bull or hist[-1] > hist[-2],  # momentum baru/menguat (toleran 3 candle)
+            wr[-1] < -55,                       # belum overbought
+            v[-1] > avg_vol * 1.1,              # volume confirm
+            pdi > mdi,                          # ADX directional bullish
+            hl_3,                               # price structure: higher low
+            adx_val > 25,                       # trend cukup kuat (bukan cuma >22)
         ]
         short_conditions = [
             e9 < e21,
-            e21 < e50,
             hist[-1] < 0,
-            hist[-2] > 0 > hist[-1] if len(hist) >= 2 else False,
+            macd_fresh_bear or hist[-1] < hist[-2],
             wr[-1] > -45,
             v[-1] > avg_vol * 1.1,
             mdi > pdi,
-            slope_e21 < 0,
+            lh_3,
+            adx_val > 25,
         ]
 
         long_score = sum(long_conditions)
