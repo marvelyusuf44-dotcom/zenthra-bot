@@ -136,11 +136,12 @@ async def broadcast_command(update, context):
     if update.effective_user.id != ADMIN_ID:
         return
 
-    if not context.args:
+    full_text = update.message.text
+    message = full_text.split(" ", 1)[1] if " " in full_text else ""
+
+    if not message:
         await update.message.reply_text("Gunakan: /broadcast [pesan kamu]")
         return
-
-    message = " ".join(context.args)
 
     with open("database/users.json", "r") as f:
         users = json.load(f)
