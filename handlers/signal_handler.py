@@ -210,9 +210,11 @@ def detect_choch(closes, highs, lows, lookback=5):
     except:
         return None
 
-def detect_fvg(opens, closes, highs, lows):
+def detect_fvg(opens, closes, highs, lows, lookback=20):
     try:
-        for i in range(len(closes)-1, 1, -1):
+        start = len(closes) - 1
+        end = max(len(closes) - lookback, 1)
+        for i in range(start, end, -1):
             if lows[i] > highs[i-2]:
                 return 'BULLISH', highs[i-2], lows[i]
             elif highs[i] < lows[i-2]:
@@ -418,7 +420,7 @@ async def generate_signal(session, symbol):
         smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
 
 
-        data1h = await get_klines(session, symbol, '1h', 60)
+        data1h = await get_klines(session, symbol, '1h', 150)
         if data1h:
             c1h, h1h, l1h, v1h = data1h
             e9_1h = ema_list(c1h, 9)[-1]
@@ -433,7 +435,7 @@ async def generate_signal(session, symbol):
                     return None
 
         # 4H Trend Filter
-        data4h = await get_klines(session, symbol, '4h', 60)
+        data4h = await get_klines(session, symbol, '4h', 150)
         if data4h:
             c4h, h4h, l4h, v4h = data4h
             e21_4h = ema_list(c4h, 21)[-1]
@@ -531,7 +533,7 @@ async def generate_signal(session, symbol):
                f"   <b>TP3</b> : {fmt(tp3)}\n\n"
                f"⚠️ Risk 1-3% per trade")
 
-        return msg, direction, pair_clean, entry_low, entry_high, sl, tp1, tp2, tp3, lev, dc
+        return msg, direction, pair_clean, entry_low, entry_high, sl, tp1, tp2, tp3, lev, dc, total_score
     except Exception as e:
         log.debug(f"signal {symbol}: {e}")
         return None
@@ -567,8 +569,9 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             valid = [r for r in results if r and not isinstance(r, Exception)]
 
             if valid:
+                valid.sort(key=lambda x: x[-1], reverse=True)
                 result = random.choice(valid[:3]) if len(valid) >= 3 else valid[0]
-                msg, direction, pair_clean, entry_low, entry_high, sl, tp1, tp2, tp3, lev, dc = result
+                msg, direction, pair_clean, entry_low, entry_high, sl, tp1, tp2, tp3, lev, dc, total_score = result
                 entry = (entry_low + entry_high) / 2
                 user_last_signal[user_id] = {
                     "pair": f"{pair_clean}USDT",
