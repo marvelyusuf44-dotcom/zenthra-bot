@@ -324,8 +324,8 @@ async def generate_signal(session, symbol):
             return None
 
         # SMC Analysis
-        raw_data = await get_klines(session, symbol, '15m', 150)
-        opens = [float(x[1]) for x in raw_data] if raw_data else []
+        raw = await fetch(session, f"{BASE_REST}/fapi/v1/klines", params={'symbol': symbol, 'interval': '15m', 'limit': 150})
+        opens = [float(x[1]) for x in raw] if raw else []
         bos = detect_bos(c, h, l)
         choch = detect_choch(c, h, l)
         fvg_type, fvg_low, fvg_high = detect_fvg(opens, c, h, l)
