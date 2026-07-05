@@ -34,10 +34,10 @@ def save_signals(signals):
     with open(SIGNALS_FILE, 'w') as f:
         json.dump(signals, f, indent=2)
 
-def update_signal_status(pair, tp_hit=None, sl_hit=False, be_hit=False):
+def update_signal_status(pair, user_id, tp_hit=None, sl_hit=False, be_hit=False):
     signals = load_signals()
     for s in signals:
-        if s.get("pair") == pair and s.get("status") in ["pending", "tp1_hit", "tp2_hit"]:
+        if s.get("pair") == pair and s.get("user_id") == user_id and s.get("status") in ["pending", "tp1_hit", "tp2_hit"]:
             if tp_hit:
                 s["status"] = f"tp{tp_hit}_hit"
             elif sl_hit:
@@ -140,27 +140,27 @@ async def monitor_positions(app):
                             pos["sl"] = entry  # Move SL to breakeven
                             save_positions(positions)
                             profit_lev = (tp1 - entry) / entry * 100 * lev
-                            update_signal_status(pair_clean, tp_hit=1)
+                            update_signal_status(pair_clean, user_id, tp_hit=1)
                             await app.bot.send_message(user_id, tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt), parse_mode="HTML")
                         elif not tp2_hit and not pos.get("tp2_hit", False) and current_price >= tp2:
                             pos["tp2_hit"] = True
                             save_positions(positions)
                             profit_lev = (tp2 - entry) / entry * 100 * lev
-                            update_signal_status(pair_clean, tp_hit=2)
+                            update_signal_status(pair_clean, user_id, tp_hit=2)
                             await app.bot.send_message(user_id, tp2_msg(pair_clean, emoji, direction, tp2, profit_lev, lev, fmt), parse_mode="HTML")
                         elif current_price >= tp3:
                             profit_lev = (tp3 - entry) / entry * 100 * lev
-                            update_signal_status(pair_clean, tp_hit=3)
+                            update_signal_status(pair_clean, user_id, tp_hit=3)
                             await app.bot.send_message(user_id, tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
                         elif current_price <= sl and key not in to_remove:
                             loss_lev = (entry - sl) / entry * 100 * lev
                             is_be = abs(sl - entry) / entry < 0.0005
                             if is_be:
-                                update_signal_status(pair_clean, be_hit=True)
+                                update_signal_status(pair_clean, user_id, be_hit=True)
                                 await app.bot.send_message(user_id, be_msg(pair_clean, emoji, direction, sl, lev, fmt), parse_mode="HTML")
                             else:
-                                update_signal_status(pair_clean, sl_hit=True)
+                                update_signal_status(pair_clean, user_id, sl_hit=True)
                                 await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
                     else:
@@ -169,27 +169,27 @@ async def monitor_positions(app):
                             pos["sl"] = entry  # Move SL to breakeven
                             save_positions(positions)
                             profit_lev = (entry - tp1) / entry * 100 * lev
-                            update_signal_status(pair_clean, tp_hit=1)
+                            update_signal_status(pair_clean, user_id, tp_hit=1)
                             await app.bot.send_message(user_id, tp1_msg(pair_clean, emoji, direction, tp1, profit_lev, lev, fmt), parse_mode="HTML")
                         elif not tp2_hit and not pos.get("tp2_hit", False) and current_price <= tp2:
                             pos["tp2_hit"] = True
                             save_positions(positions)
                             profit_lev = (entry - tp2) / entry * 100 * lev
-                            update_signal_status(pair_clean, tp_hit=2)
+                            update_signal_status(pair_clean, user_id, tp_hit=2)
                             await app.bot.send_message(user_id, tp2_msg(pair_clean, emoji, direction, tp2, profit_lev, lev, fmt), parse_mode="HTML")
                         elif current_price <= tp3:
                             profit_lev = (entry - tp3) / entry * 100 * lev
-                            update_signal_status(pair_clean, tp_hit=3)
+                            update_signal_status(pair_clean, user_id, tp_hit=3)
                             await app.bot.send_message(user_id, tp3_msg(pair_clean, emoji, direction, tp3, profit_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
                         elif current_price >= sl and key not in to_remove:
                             loss_lev = (sl - entry) / entry * 100 * lev
                             is_be = abs(sl - entry) / entry < 0.0005
                             if is_be:
-                                update_signal_status(pair_clean, be_hit=True)
+                                update_signal_status(pair_clean, user_id, be_hit=True)
                                 await app.bot.send_message(user_id, be_msg(pair_clean, emoji, direction, sl, lev, fmt), parse_mode="HTML")
                             else:
-                                update_signal_status(pair_clean, sl_hit=True)
+                                update_signal_status(pair_clean, user_id, sl_hit=True)
                                 await app.bot.send_message(user_id, sl_msg(pair_clean, emoji, direction, sl, loss_lev, lev, fmt), parse_mode="HTML")
                             to_remove.append(key)
 
