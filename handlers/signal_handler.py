@@ -386,7 +386,7 @@ async def generate_signal(session, symbol):
         long_score = sum(long_conditions)
         short_score = sum(short_conditions)
 
-        if long_score < 5 and short_score < 5:
+        if long_score < 6 and short_score < 6:
             return None
 
         if long_score >= short_score + 1:
@@ -454,18 +454,34 @@ async def generate_signal(session, symbol):
                 if not (e21_4h < e50_4h and hist4h[-1] < 0):
                     return None
 
-        # Candle Confirmation — candle 15m terakhir harus searah signal
-        last_open = float(data[-1][1])
+        # Candle Confirmation — 2 candle 15m terakhir harus konsisten searah signal
+        last_open = opens[-1]
         last_close = c[-1]
-        if direction == 'LONG' and last_close <= last_open:
-            return None  # candle terakhir bearish, jangan LONG
-        if direction == 'SHORT' and last_close >= last_open:
-            return None  # candle terakhir bullish, jangan SHORT
+        prev_open = opens[-2]
+        prev_close = c[-2]
+        if direction == 'LONG' and (last_close <= last_open or prev_close <= prev_open):
+            return None  # belum konsisten bullish 2x berturut-turut
+        if direction == 'SHORT' and (last_close >= last_open or prev_close >= prev_open):
+            return None  # belum konsisten bearish 2x berturut-turut
 
         # Jarak ke EMA50 — hindari entry di area sudah terlalu jauh dari EMA50
         dist_to_ema50_pct = abs(price - e50) / e50 * 100
         if dist_to_ema50_pct > 8:
             return None  # harga sudah terlalu jauh dari EMA50, risiko reversal tinggi
+
+        # Exhaustion Filter — hindari entry yang udah terlalu jauh dari swing 20 candle terakhir
+        lookback_swing = 20
+        if len(h) >= lookback_swing + 1:
+            swing_high = max(h[-lookback_swing-1:-1])
+            swing_low = min(l[-lookback_swing-1:-1])
+            if direction == 'SHORT':
+                extension_pct = (swing_high - price) / swing_high * 100
+                if extension_pct > 15:
+                    return None  # udah turun >15% dari swing high, risiko bounce
+            else:
+                extension_pct = (price - swing_low) / swing_low * 100
+                if extension_pct > 15:
+                    return None  # udah naik >15% dari swing low, risiko koreksi
 
         # Funding Rate Filter — SEMENTARA DINONAKTIFKAN (terlalu ketat)
         # funding = await get_funding_rate(session, symbol)
