@@ -236,32 +236,36 @@ def detect_order_block(opens, closes, highs, lows):
     except:
         return None, None, None
 
-def detect_liquidity_sweep(highs, lows, closes, lookback=20):
+def detect_liquidity_sweep(highs, lows, closes, volumes, lookback=20):
     try:
         if len(highs) < lookback + 1:
             return None
         recent_high = max(highs[-lookback-1:-1])
         recent_low  = min(lows[-lookback-1:-1])
-        if highs[-1] > recent_high and closes[-1] < recent_high:
+        avg_vol = sum(volumes[-lookback-1:-1]) / lookback
+        vol_confirmed = volumes[-1] > avg_vol * 1.2
+        if highs[-1] > recent_high and closes[-1] < recent_high and vol_confirmed:
             return 'SWEEP_HIGH'
-        if lows[-1] < recent_low and closes[-1] > recent_low:
+        if lows[-1] < recent_low and closes[-1] > recent_low and vol_confirmed:
             return 'SWEEP_LOW'
         return None
     except:
         return None
 
-def calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep):
+def calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep, choch=None):
     score = 0
     if direction == 'LONG':
         if bos == 'BULLISH': score += 2
         if fvg_type == 'BULLISH': score += 2
         if ob_type == 'BULLISH': score += 2
         if liq_sweep == 'SWEEP_LOW': score += 2
+        if choch == 'BULLISH': score += 1
     else:
         if bos == 'BEARISH': score += 2
         if fvg_type == 'BEARISH': score += 2
         if ob_type == 'BEARISH': score += 2
         if liq_sweep == 'SWEEP_HIGH': score += 2
+        if choch == 'BEARISH': score += 1
     return score
 
 
@@ -288,22 +292,6 @@ async def get_oi_change(session, symbol):
         return None
     except:
         return None
-
-def check_rr_ratio(entry, sl, tp1, direction):
-    """Cek Risk:Reward minimal 2.0"""
-    try:
-        if direction == 'LONG':
-            risk = entry - sl
-            reward = tp1 - entry
-        else:
-            risk = sl - entry
-            reward = entry - tp1
-        if risk <= 0:
-            return False
-        rr = reward / risk
-        return rr >= 1.8  # sedikit toleransi dari 2.0 murni karena tp1 paling konservatif
-    except:
-        return False
 
 async def generate_signal(session, symbol):
     try:
@@ -332,7 +320,7 @@ async def generate_signal(session, symbol):
         choch = detect_choch(c, h, l)
         fvg_type, fvg_low, fvg_high = detect_fvg(opens, c, h, l)
         ob_type, ob_low, ob_high = detect_order_block(opens, c, h, l)
-        liq_sweep = detect_liquidity_sweep(h, l, c)
+        liq_sweep = detect_liquidity_sweep(h, l, c, v)
 
 
 
@@ -354,9 +342,26 @@ async def generate_signal(session, symbol):
         if adx_val < 22:
             return None
 
-        # Price structure: higher low (3 candle terakhir naik) untuk LONG, lower high untuk SHORT
-        hl_3 = l[-3] < l[-2] < l[-1] if len(l) >= 3 else False
-        lh_3 = h[-3] > h[-2] > h[-1] if len(h) >= 3 else False
+        # Divergence Check — harga vs MACD histogram gak searah (sinyal reversal)
+        div_lookback = 10
+        if len(c) > div_lookback and len(hist) > div_lookback:
+            price_delta = c[-1] - c[-div_lookback]
+            hist_delta = hist[-1] - hist[-div_lookback]
+            bullish_divergence = price_delta < 0 and hist_delta > 0
+            bearish_divergence = price_delta > 0 and hist_delta < 0
+        else:
+            bullish_divergence = False
+            bearish_divergence = False
+
+        # Price structure: cek 5 candle terakhir, toleransi 1 penyimpangan
+        def _structure_up(vals):
+            steps = sum(1 for i in range(1, len(vals)) if vals[i] > vals[i-1])
+            return steps >= len(vals) - 2
+        def _structure_down(vals):
+            steps = sum(1 for i in range(1, len(vals)) if vals[i] < vals[i-1])
+            return steps >= len(vals) - 2
+        hl_3 = _structure_up(l[-5:]) if len(l) >= 5 else False
+        lh_3 = _structure_down(h[-5:]) if len(h) >= 5 else False
 
         # MACD momentum dalam 3 candle terakhir (lebih toleran dari strict candle terakhir)
         macd_fresh_bull = any(hist[i-1] < 0 < hist[i] for i in range(max(1, len(hist)-3), len(hist))) if len(hist) >= 4 else False
@@ -371,6 +376,7 @@ async def generate_signal(session, symbol):
             pdi > mdi,                          # ADX directional bullish
             hl_3,                               # price structure: higher low
             adx_val > 25,                       # trend cukup kuat (bukan cuma >22)
+            bullish_divergence,                 # divergence: harga turun, momentum naik
         ]
         short_conditions = [
             e9 < e21,
@@ -381,6 +387,7 @@ async def generate_signal(session, symbol):
             mdi > pdi,
             lh_3,
             adx_val > 25,
+            bearish_divergence,
         ]
 
         long_score = sum(long_conditions)
@@ -397,8 +404,8 @@ async def generate_signal(session, symbol):
             return None
 
         # SMC sekarang BAGIAN dari skor utama, bukan filter sampingan
-        smc_score_long = calc_smc_score('LONG', bos, fvg_type, ob_type, liq_sweep)
-        smc_score_short = calc_smc_score('SHORT', bos, fvg_type, ob_type, liq_sweep)
+        smc_score_long = calc_smc_score('LONG', bos, fvg_type, ob_type, liq_sweep, choch)
+        smc_score_short = calc_smc_score('SHORT', bos, fvg_type, ob_type, liq_sweep, choch)
 
         combined_long = long_score + (smc_score_long / 2)
         combined_short = short_score + (smc_score_short / 2)
@@ -410,14 +417,14 @@ async def generate_signal(session, symbol):
         else:
             return None
 
-        smc_score_check = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
+        smc_score_check = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep, choch)
         if smc_score_check < 2:
             return None
 
         log.info(f"[SIGNAL FOUND] {symbol} {direction} | tech_score={max(long_score,short_score)} | smc={smc_score_check} | combined_long={combined_long:.1f} combined_short={combined_short:.1f}")
 
         # SMC Score
-        smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep)
+        smc_score = calc_smc_score(direction, bos, fvg_type, ob_type, liq_sweep, choch)
 
 
         data1h = await get_klines(session, symbol, '1h', 150)
@@ -586,7 +593,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if valid:
                 valid.sort(key=lambda x: x[-1], reverse=True)
-                result = random.choice(valid[:3]) if len(valid) >= 3 else valid[0]
+                result = valid[0]  # strictly pilih skor tertinggi
                 msg, direction, pair_clean, entry_low, entry_high, sl, tp1, tp2, tp3, lev, dc, total_score = result
                 entry = (entry_low + entry_high) / 2
                 user_last_signal[user_id] = {
